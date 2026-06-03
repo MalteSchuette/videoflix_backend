@@ -19,6 +19,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_rq',
 ]
 
 MIDDLEWARE = [
@@ -52,8 +53,32 @@ WSGI_APPLICATION = 'core.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ.get('DB_NAME', 'videoflix_db'),
+        'USER': os.environ.get('DB_USER', 'videoflix_user'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', ''),
+        'HOST': os.environ.get('DB_HOST', 'db'),
+        'PORT': os.environ.get('DB_PORT', '5432'),
+    }
+}
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': os.environ.get('REDIS_LOCATION', 'redis://redis:6379/1'),
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        },
+        'KEY_PREFIX': 'videoflix',
+    }
+}
+
+RQ_QUEUES = {
+    'default': {
+        'HOST': os.environ.get('REDIS_HOST', 'redis'),
+        'PORT': os.environ.get('REDIS_PORT', 6379),
+        'DB': os.environ.get('REDIS_DB', 0),
+        'DEFAULT_TIMEOUT': 900,
     }
 }
 
