@@ -6,6 +6,7 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .serializers import RegisterSerializer, UserSerializer
@@ -70,4 +71,39 @@ class LoginView(APIView):
             'user': {'id': user.id, 'username': user.email},
         })
         set_auth_cookies(response, refresh.access_token, refresh)
+        return response
+
+
+class LogoutView(APIView):
+
+    def post(self, request):
+        refresh_token = request.COOKIES.get('refresh_token')
+        if not refresh_token:
+            return Response({'detail': 'Refresh token missing.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+        except TokenError:
+            pass
+        response = Response(
+            {'detail': 'Logout successful! All tokens will be deleted. Refresh token is now invalid.'}
+        )
+        delete_auth_cookies(response)
+        return response
+
+
+class TokenRefreshView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        refresh_token = request.COOKIES.get('refresh_token')
+        if not refresh_token:
+            return Response({'detail': 'Refresh token missing.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            token = RefreshToken(refresh_token)
+            access_token = token.access_token
+        except TokenError:
+            return Response({'detail': 'Invalid refresh token.'}, status=status.HTTP_401_UNAUTHORIZED)
+        response = Response({'detail': 'Token refreshed', 'access': str(access_token)})
+        response.set_cookie('access_token', str(access_token), httponly=True, samesite='Lax')
         return response
