@@ -21,3 +21,15 @@ def send_activation_email(user):
         recipient_list=[user.email],
         fail_silently=False,
     )
+
+
+def send_password_reset_email(user):
+    uid, token = generate_uid_token(user)
+    reset_link = f"{settings.FRONTEND_URL}/reset-password/{uid}/{token}/"
+    send_mail(
+        subject='Reset your Videoflix password',
+        message=f'Click the link to reset your password: {reset_link}',
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[user.email],
+        fail_silently=False,
+    )
