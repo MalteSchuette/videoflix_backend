@@ -9,8 +9,8 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .serializers import RegisterSerializer, UserSerializer
-from ..utils import send_activation_email
+from .serializers import PasswordConfirmSerializer, PasswordResetSerializer, RegisterSerializer, UserSerializer
+from ..utils import send_activation_email, send_password_reset_email
 
 User = get_user_model()
 
@@ -90,6 +90,37 @@ class LogoutView(APIView):
         )
         delete_auth_cookies(response)
         return response
+
+
+class PasswordResetView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = PasswordResetSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data['email']
+        user = User.objects.filter(email=email, is_active=True).first()
+        if user:
+            send_password_reset_email(user)
+        return Response({'detail': 'If this email exists, a reset link has been sent.'})
+
+
+class PasswordConfirmView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request, uidb64, token):
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid)
+        except (User.DoesNotExist, ValueError):
+            return Response({'error': 'Invalid reset link.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not default_token_generator.check_token(user, token):
+            return Response({'error': 'Invalid reset link.'}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = PasswordConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user.set_password(serializer.validated_data['password'])
+        user.save()
+        return Response({'detail': 'Password has been reset successfully.'})
 
 
 class TokenRefreshView(APIView):
