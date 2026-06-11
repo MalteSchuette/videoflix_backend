@@ -25,6 +25,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'users_app',
+    'videos_app',
 ]
 
 AUTH_USER_MODEL = 'users_app.CustomUser'
